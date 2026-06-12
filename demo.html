@@ -223,6 +223,48 @@
     color:var(--cacao);
   }
 
+  /* ====== Card "armá tu mitad y mitad" ====== */
+  .card-mm{
+    grid-column:1 / -1;
+    background:var(--blanco);
+    border:1px dashed var(--terracota);
+    border-radius:16px;
+    padding:15px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .mm-titulo{
+    font-family:'Zilla Slab',serif;
+    font-weight:700;
+    font-size:17px;
+    color:var(--terracota);
+  }
+  .mm-sub{font-size:12.5px;color:var(--texto2);line-height:1.4}
+  .mm-selects{display:flex;flex-direction:column;gap:8px}
+  @media(min-width:420px){.mm-selects{flex-direction:row}}
+  .mm-mitad{flex:1;display:flex;flex-direction:column;gap:4px}
+  .mm-mitad label{
+    font-size:11px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.4px;color:var(--cacao);
+  }
+  .mm-mitad select{
+    width:100%;padding:10px 12px;
+    border:1px solid var(--borde);border-radius:10px;
+    background:#fff;font-family:inherit;font-size:14px;color:var(--cacao);
+  }
+  .mm-pie{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .mm-precio{font-weight:700;font-size:14px;color:var(--texto2)}
+  .mm-precio b{font-weight:800;font-size:16px;color:var(--terracota)}
+  .mm-agregar{
+    background:var(--terracota);color:#fff;
+    font-weight:800;font-size:14px;
+    border-radius:10px;padding:10px 18px;
+    box-shadow:0 3px 0 var(--terracota-osc);
+    white-space:nowrap;transition:transform .1s;
+  }
+  .mm-agregar:active{transform:translateY(2px);box-shadow:0 1px 0 var(--terracota-osc)}
+
   /* ====== Barra de pedido fija (carrito + WhatsApp) ====== */
   .barra-carrito{
     position:fixed;
@@ -502,7 +544,7 @@ const CONFIG = {
    de la imagen (ej: img:"fotos/muzzarella.jpg") */
 const CATALOGO = [
   {
-    id: "pizzas", nombre: "Pizzas", emoji: "\u{1F355}",
+    id: "pizzas", nombre: "Pizzas", emoji: "\u{1F355}", mitadYMitad: true,
     sub: "Al molde, 8 porciones, salen con horno de barro",
     productos: [
       {id:"muzza",  nombre:"Muzzarella",    desc:"Salsa de tomate, muzzarella, aceitunas verdes y orégano.", precio:14000, emoji:"\u{1F355}", img:null},
@@ -515,11 +557,11 @@ const CATALOGO = [
   },
   {
     id: "empanadas", nombre: "Empanadas", emoji: "\u{1F95F}",
-    sub: "Horneadas, masa casera",
+    sub: "Horneadas, masa casera · precio por unidad",
     productos: [
-      {id:"emp-carne", nombre:"Carne cortada a cuchillo (x6)", desc:"Con huevo, aceituna y el toque de comino de la nona.", precio:9500, emoji:"\u{1F95F}", img:null},
-      {id:"emp-jyq",   nombre:"Jamón y queso (x6)", desc:"Bien rellenas, queso que se estira.", precio:9500, emoji:"\u{1F95F}", img:null},
-      {id:"emp-pollo", nombre:"Pollo (x6)", desc:"Pollo desmenuzado con verdeo y morrón.", precio:9500, emoji:"\u{1F95F}", img:null},
+      {id:"emp-carne", nombre:"Carne cortada a cuchillo", desc:"Con huevo, aceituna y el toque de comino de la nona.", precio:1600, emoji:"\u{1F95F}", img:null},
+      {id:"emp-jyq",   nombre:"Jamón y queso", desc:"Bien rellenas, queso que se estira.", precio:1600, emoji:"\u{1F95F}", img:null},
+      {id:"emp-pollo", nombre:"Pollo", desc:"Pollo desmenuzado con verdeo y morrón.", precio:1600, emoji:"\u{1F95F}", img:null},
       {id:"emp-doc",   nombre:"Docena surtida", desc:"Elegimos las mejores de cada gusto. Avisanos preferencias en notas.", precio:18000, emoji:"\u{1F95F}", img:null}
     ]
   },
@@ -547,6 +589,7 @@ const CATALOGO = [
    MOTOR DEL CARRITO (no tocar para rebrandear)
 ============================================================ */
 const carrito = {}; // id -> cantidad
+const itemsCustom = {}; // id armado (ej: mitad y mitad) -> {nombre, precio, emoji}
 let entrega = "Delivery";
 
 const $ = s => document.querySelector(s);
@@ -554,6 +597,9 @@ const fmt = n => "$" + n.toLocaleString("es-AR");
 
 const indiceProductos = {};
 CATALOGO.forEach(c => c.productos.forEach(p => indiceProductos[p.id] = p));
+
+/* Resuelve un id del carrito, sea de catálogo o armado en el momento */
+const getProducto = id => indiceProductos[id] || itemsCustom[id];
 
 /* ---- Render del menú ---- */
 function renderMenu(){
@@ -575,6 +621,7 @@ function renderMenu(){
     const grilla = document.createElement("div");
     grilla.className = "grilla";
     cat.productos.forEach(p => grilla.appendChild(crearCard(p)));
+    if (cat.mitadYMitad) grilla.insertBefore(crearArmadoMM(cat), grilla.firstChild);
     sec.appendChild(grilla);
     main.appendChild(sec);
   });
@@ -605,6 +652,66 @@ function crearCard(p){
   return card;
 }
 
+/* ---- Card para armar una pizza mitad y mitad ---- */
+function crearArmadoMM(cat){
+  const card = document.createElement("article");
+  card.className = "card-mm";
+  const opts = cat.productos.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
+  card.innerHTML = `
+    <div class="mm-titulo">\u{1F355} Armá tu mitad y mitad</div>
+    <div class="mm-sub">Elegí dos gustos. Se cobra el de mayor precio.</div>
+    <div class="mm-selects">
+      <div class="mm-mitad">
+        <label>Primera mitad</label>
+        <select class="mm-a">${opts}</select>
+      </div>
+      <div class="mm-mitad">
+        <label>Segunda mitad</label>
+        <select class="mm-b">${opts}</select>
+      </div>
+    </div>
+    <div class="mm-pie">
+      <span class="mm-precio">Precio: <b class="mm-monto"></b></span>
+      <button class="mm-agregar" type="button">Agregar</button>
+    </div>`;
+  const selA = card.querySelector(".mm-a");
+  const selB = card.querySelector(".mm-b");
+  const monto = card.querySelector(".mm-monto");
+  if (selB.options.length > 1) selB.selectedIndex = 1;
+  const refrescar = () => {
+    monto.textContent = fmt(Math.max(indiceProductos[selA.value].precio, indiceProductos[selB.value].precio));
+  };
+  selA.onchange = refrescar;
+  selB.onchange = refrescar;
+  refrescar();
+  const btn = card.querySelector(".mm-agregar");
+  btn.onclick = () => {
+    agregarMM(selA.value, selB.value);
+    btn.textContent = "✓ Agregada";
+    setTimeout(() => btn.textContent = "Agregar", 1200);
+  };
+  return card;
+}
+
+/* Crea/incrementa un ítem de carrito mitad y mitad.
+   El id es independiente del orden elegido (muzza+napo == napo+muzza). */
+function agregarMM(idA, idB){
+  const [x, y] = [idA, idB].sort();
+  const id = `mm:${x}+${y}`;
+  if (!itemsCustom[id]){
+    const a = indiceProductos[x], b = indiceProductos[y];
+    const nombre = x === y
+      ? `${a.nombre} (mitad y mitad)`
+      : `Mitad ${a.nombre} / Mitad ${b.nombre}`;
+    itemsCustom[id] = {
+      nombre,
+      precio: Math.max(a.precio, b.precio),
+      emoji: "\u{1F355}"
+    };
+  }
+  cambiarCant(id, 1);
+}
+
 /* ---- Lógica de carrito ---- */
 function cambiarCant(id, delta){
   carrito[id] = Math.max(0, (carrito[id] || 0) + delta);
@@ -616,7 +723,7 @@ function totales(){
   let cant = 0, total = 0;
   for (const [id, c] of Object.entries(carrito)){
     cant += c;
-    total += c * indiceProductos[id].precio;
+    total += c * getProducto(id).precio;
   }
   return {cant, total};
 }
@@ -638,7 +745,7 @@ function renderListaPedido(){
   const cont = $("#listaPedido");
   cont.innerHTML = "";
   for (const [id, c] of Object.entries(carrito)){
-    const p = indiceProductos[id];
+    const p = getProducto(id);
     const div = document.createElement("div");
     div.className = "item-pedido";
     div.innerHTML = `
@@ -704,7 +811,7 @@ $("#btnEnviar").onclick = () => {
   mensaje += `Nombre: ${nombre}\n`;
   mensaje += `${entrega === "Delivery" ? "Delivery — " + direccion : "Retiro en local"}\n\n`;
   for (const [id, c] of Object.entries(carrito)){
-    const p = indiceProductos[id];
+    const p = getProducto(id);
     mensaje += `• ${c}x ${p.nombre} — ${fmt(p.precio * c)}\n`;
   }
   mensaje += `\nTotal: ${fmt(total)}\n`;
