@@ -112,7 +112,7 @@
 
   /* ====== Secciones ====== */
   main{max-width:680px;margin:0 auto;padding:8px 16px 24px}
-  section{padding-top:32px}
+  section{padding-top:52px}
   .sec-head{
     display:flex;
     align-items:baseline;
@@ -452,7 +452,7 @@
   <p class="tagline">pizza al molde · horno de barro · masa artesanal</p>
   <div class="datos">
     <span>&#x1F557; 19:30–23:30</span>
-    <span>&#x1F6F5; Delivery sin cargo</span>
+    <span>&#x1F6F5; Delivery</span>
     <span>&#x1F4CD; Zona centro</span>
   </div>
 </header>
@@ -465,7 +465,7 @@
 
 <main id="menu"></main>
 
-<footer>Hecho con &#x1F355; — Pedidos únicamente por WhatsApp</footer>
+<footer>Pedidos únicamente por WhatsApp</footer>
 
 <!-- Barra de pedido fija -->
 <div class="barra-carrito" id="barraCarrito">
@@ -494,8 +494,8 @@
       <div class="campo">
         <label>Entrega</label>
         <div class="toggle">
-          <button id="btnDelivery" class="activo" type="button">&#x1F6F5; Delivery</button>
-          <button id="btnRetiro" type="button">&#x1F3E0; Retiro en local</button>
+          <button id="btnDelivery" class="activo" type="button">Delivery</button>
+          <button id="btnRetiro" type="button">Retiro en local</button>
         </div>
       </div>
       <div class="campo" id="campoDireccion">
@@ -596,10 +596,30 @@ const $ = s => document.querySelector(s);
 const fmt = n => "$" + n.toLocaleString("es-AR");
 
 const indiceProductos = {};
-CATALOGO.forEach(c => c.productos.forEach(p => indiceProductos[p.id] = p));
+const ordenProducto = {}; // id -> posición global según CATALOGO (para ordenar el pedido)
+let _ord = 0;
+CATALOGO.forEach(c => c.productos.forEach(p => {
+  indiceProductos[p.id] = p;
+  ordenProducto[p.id] = _ord++;
+}));
 
 /* Resuelve un id del carrito, sea de catálogo o armado en el momento */
 const getProducto = id => indiceProductos[id] || itemsCustom[id];
+
+/* Rango de un ítem para ordenar el pedido por categoría/posición del catálogo.
+   Los armados (mitad y mitad) se ubican junto a las pizzas que los componen. */
+function rangoItem(id){
+  if (id in ordenProducto) return ordenProducto[id];
+  if (id.startsWith("mm:")){
+    const [x, y] = id.slice(3).split("+");
+    return Math.min(ordenProducto[x] ?? Infinity, ordenProducto[y] ?? Infinity) + 0.5;
+  }
+  return Infinity;
+}
+
+/* Entradas del carrito ordenadas según el catálogo, no por orden de agregado */
+const carritoOrdenado = () =>
+  Object.entries(carrito).sort((a, b) => rangoItem(a[0]) - rangoItem(b[0]));
 
 /* ---- Render del menú ---- */
 function renderMenu(){
@@ -607,7 +627,7 @@ function renderMenu(){
   CATALOGO.forEach((cat, i) => {
     const tab = document.createElement("button");
     tab.className = "tab" + (i===0 ? " activa" : "");
-    tab.textContent = cat.emoji + " " + cat.nombre;
+    tab.textContent = cat.nombre;
     tab.onclick = () => {
       document.getElementById("sec-"+cat.id).scrollIntoView({block:"start"});
       document.querySelectorAll(".tab").forEach(t=>t.classList.remove("activa"));
@@ -658,7 +678,7 @@ function crearArmadoMM(cat){
   card.className = "card-mm";
   const opts = cat.productos.map(p => `<option value="${p.id}">${p.nombre}</option>`).join("");
   card.innerHTML = `
-    <div class="mm-titulo">\u{1F355} Armá tu mitad y mitad</div>
+    <div class="mm-titulo">Armá tu mitad y mitad</div>
     <div class="mm-sub">Elegí dos gustos. Se cobra el de mayor precio.</div>
     <div class="mm-selects">
       <div class="mm-mitad">
@@ -744,12 +764,11 @@ function actualizarUI(){
 function renderListaPedido(){
   const cont = $("#listaPedido");
   cont.innerHTML = "";
-  for (const [id, c] of Object.entries(carrito)){
+  for (const [id, c] of carritoOrdenado()){
     const p = getProducto(id);
     const div = document.createElement("div");
     div.className = "item-pedido";
     div.innerHTML = `
-      <span class="item-emoji">${p.emoji}</span>
       <div class="item-info">
         <div class="n">${p.nombre}</div>
         <div class="p">${fmt(p.precio * c)}</div>
@@ -810,7 +829,7 @@ $("#btnEnviar").onclick = () => {
   let mensaje = "¡Hola! Quiero hacer un pedido:\n\n";
   mensaje += `Nombre: ${nombre}\n`;
   mensaje += `${entrega === "Delivery" ? "Delivery — " + direccion : "Retiro en local"}\n\n`;
-  for (const [id, c] of Object.entries(carrito)){
+  for (const [id, c] of carritoOrdenado()){
     const p = getProducto(id);
     mensaje += `• ${c}x ${p.nombre} — ${fmt(p.precio * c)}\n`;
   }
