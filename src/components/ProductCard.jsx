@@ -1,4 +1,5 @@
 import { fmt } from '../hooks/useCart'
+import Cant from './Cant'
 
 export default function ProductCard({ producto, cantidad, onCambiar }) {
   const p = producto
@@ -16,7 +17,7 @@ export default function ProductCard({ producto, cantidad, onCambiar }) {
         <div className="desc">{p.descripcion}</div>
         <div className="stepper">
           <button className="menos" aria-label={`Quitar ${p.nombre}`} onClick={() => onCambiar(p.slug, -1)}>−</button>
-          <span className="cant">{cantidad}</span>
+          <Cant value={cantidad} />
           <button className="mas" aria-label={`Agregar ${p.nombre}`} onClick={() => onCambiar(p.slug, 1)}>+</button>
         </div>
       </div>

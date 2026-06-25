@@ -20,7 +20,7 @@ export default function Landing() {
       padding: '2rem 1.25rem',
       background: 'var(--color-bg)',
     }}>
-      <main style={{
+      <main className="landing-card" style={{
         width: '100%',
         maxWidth: '370px',
         background: 'var(--color-surface)',

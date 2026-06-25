@@ -13,6 +13,8 @@ create table tenants (
   logo_emoji text,                     -- emoji placeholder para el logo cuando no hay logo_url, ej: "🧜‍♀️"
   badges     jsonb default '[]'::jsonb, -- array de strings, ej: ["🕗 19:30–23:30", "🛵 Delivery"]
   colores    jsonb default '{}'::jsonb, -- claves: bg, primary, primaryDark, secondary, accent, accentDark, text, textMuted, border, surface
+  template   text default 'clasico',    -- qué diseño de página usar: 'clasico' | 'moderno'
+  estilos    jsonb default '{}'::jsonb, -- tokens de estilo: fontDisplay, fontBody, radio, sombra
   created_at timestamptz default now()
 );
 

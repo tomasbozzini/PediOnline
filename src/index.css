@@ -9,13 +9,19 @@
   --color-text-muted: #8A7D68;
   --color-border: #ECDCC4;
   --color-surface: #FFFFFF;
+
+  /* Tokens de estilo (los pisa cada tenant vía tenants.estilos) */
+  --font-display: 'Zilla Slab', serif;
+  --font-body: 'Mulish', system-ui, sans-serif;
+  --radio: 16px;
+  --sombra: 0 18px 40px -28px rgba(60,40,20,.5);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Mulish', system-ui, sans-serif;
+  font-family: var(--font-body);
   background: var(--color-bg);
   color: var(--color-text);
   padding-bottom: 96px;
@@ -48,7 +54,7 @@ header {
   padding: 26px 16px 22px;
 }
 .logo {
-  font-family: 'Zilla Slab', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(2.1rem, 9vw, 2.6rem);
   line-height: 1.05;
@@ -103,13 +109,16 @@ nav::-webkit-scrollbar { display: none; }
   background: var(--color-surface);
   border: 1px solid #E6D4BC;
   white-space: nowrap;
-  transition: background .15s, color .15s, border-color .15s;
+  transition: background .15s, color .15s, border-color .15s, transform .12s;
 }
+.tab:hover { border-color: var(--color-secondary); color: var(--color-secondary); }
+.tab:active { transform: scale(.94); }
 .tab.activa {
   background: var(--color-secondary);
   border-color: var(--color-secondary);
   color: var(--color-bg);
 }
+.tab.activa:hover { color: var(--color-bg); }
 
 /* ====== Secciones ====== */
 main { max-width: 680px; margin: 0 auto; padding: 8px 16px 24px; }
@@ -122,7 +131,7 @@ section { padding-top: 52px; }
   margin-bottom: 16px;
 }
 .sec-head h2 {
-  font-family: 'Zilla Slab', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 23px;
   color: var(--color-primary);
@@ -133,6 +142,25 @@ section { padding-top: 52px; }
 /* ====== Cards de producto ====== */
 .grilla { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 539px) { .grilla { grid-template-columns: 1fr; } }
+
+/* Entrada escalonada de las cards al cargar */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card, .card-mm {
+  /* 'backwards' solo aplica el estado inicial durante el delay; al terminar
+     la card vuelve a su CSS normal, así el hover (transform) sigue funcionando */
+  animation: cardIn .45s cubic-bezier(.32,.72,.33,1) backwards;
+}
+.grilla > :nth-child(1) { animation-delay: .03s; }
+.grilla > :nth-child(2) { animation-delay: .08s; }
+.grilla > :nth-child(3) { animation-delay: .13s; }
+.grilla > :nth-child(4) { animation-delay: .18s; }
+.grilla > :nth-child(5) { animation-delay: .23s; }
+.grilla > :nth-child(6) { animation-delay: .28s; }
+.grilla > :nth-child(7) { animation-delay: .33s; }
+.grilla > :nth-child(n+8) { animation-delay: .38s; }
 
 .card {
   position: relative;
@@ -182,7 +210,7 @@ section { padding-top: 52px; }
   flex: 1;
 }
 .nombre {
-  font-family: 'Zilla Slab', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 17px;
   color: var(--color-text);
@@ -208,17 +236,28 @@ section { padding-top: 52px; }
   font-size: 18px;
   font-weight: 700;
   line-height: 1;
-  transition: transform .1s;
+  transition: transform .1s, background .15s, filter .15s;
 }
+.stepper button:hover { filter: brightness(1.07); }
 .stepper button:active { transform: scale(.9); }
 .stepper .menos { background: #F3EAD8; color: var(--color-primary); }
+.stepper .menos:hover { background: #ECDFC2; }
 .stepper .mas { background: var(--color-primary); color: #fff; }
+.stepper .mas:hover { background: var(--color-primary-dark); }
 .stepper .cant {
   min-width: 18px;
   text-align: center;
   font-weight: 800;
   font-size: 15px;
   color: var(--color-text);
+  display: inline-block;
+}
+/* Salto del número al cambiar la cantidad */
+.stepper .cant.bump { animation: bump .32s ease; }
+@keyframes bump {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.45); color: var(--color-primary); }
+  100% { transform: scale(1); }
 }
 
 /* ====== Card "armá tu mitad y mitad" ====== */
@@ -233,7 +272,7 @@ section { padding-top: 52px; }
   gap: 12px;
 }
 .mm-titulo {
-  font-family: 'Zilla Slab', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 17px;
   color: var(--color-primary);
@@ -259,9 +298,21 @@ section { padding-top: 52px; }
   font-weight: 800; font-size: 14px;
   border-radius: 10px; padding: 10px 18px;
   box-shadow: 0 3px 0 var(--color-primary-dark);
-  white-space: nowrap; transition: transform .1s;
+  white-space: nowrap; transition: transform .1s, background .2s, box-shadow .2s, filter .15s;
 }
+.mm-agregar:hover { filter: brightness(1.07); }
 .mm-agregar:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--color-primary-dark); }
+/* Estado "✓ Agregada": mantiene el color del local, solo aclara y hace un pop
+   (sin colores hardcodeados, para respetar la identidad de cada tenant) */
+.mm-agregar.agregada {
+  filter: brightness(1.08);
+  animation: popBtn .3s ease;
+}
+@keyframes popBtn {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
 
 /* ====== Barra de pedido fija ====== */
 .barra-carrito {
@@ -270,10 +321,16 @@ section { padding-top: 52px; }
   z-index: 40;
   background: var(--color-secondary);
   color: var(--color-bg);
-  display: none;
   box-shadow: 0 -6px 20px rgba(60,40,20,.18);
+  /* Oculta deslizada hacia abajo; se anima al entrar/salir */
+  transform: translateY(130%);
+  pointer-events: none;
+  transition: transform .35s cubic-bezier(.32,.72,.33,1);
 }
-.barra-carrito.visible { display: block; }
+.barra-carrito.visible {
+  transform: translateY(0);
+  pointer-events: auto;
+}
 .barra-inner {
   max-width: 680px;
   margin: 0 auto;
@@ -293,8 +350,9 @@ section { padding-top: 52px; }
   padding: 11px 20px;
   box-shadow: 0 3px 0 var(--color-accent-dark);
   white-space: nowrap;
-  transition: transform .1s;
+  transition: transform .1s, filter .15s;
 }
+.btn-pedir:hover { filter: brightness(1.05); }
 .btn-pedir:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--color-accent-dark); }
 
 /* ====== Drawer del pedido ====== */
@@ -327,7 +385,7 @@ section { padding-top: 52px; }
   padding: 16px 20px 6px;
 }
 .drawer-head h3 {
-  font-family: 'Zilla Slab', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 22px;
   color: var(--color-primary);
@@ -353,7 +411,7 @@ section { padding-top: 52px; }
 .item-emoji { font-size: 1.5rem; }
 .item-info { flex: 1; }
 .item-info .n {
-  font-family: 'Zilla Slab', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 15px;
   color: var(--color-text);
@@ -411,7 +469,7 @@ section { padding-top: 52px; }
 }
 .total-fila .t { font-weight: 700; font-size: 15px; }
 .total-fila .m {
-  font-family: 'Zilla Slab', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 24px;
   color: var(--color-primary);
@@ -431,8 +489,9 @@ section { padding-top: 52px; }
   justify-content: center;
   gap: 10px;
   box-shadow: 0 3px 0 #1da851;
-  transition: transform .1s;
+  transition: transform .1s, filter .15s;
 }
+.btn-wsp:hover { filter: brightness(1.06); }
 .btn-wsp:active { transform: translateY(2px); box-shadow: 0 1px 0 #1da851; }
 .btn-wsp svg { width: 20px; height: 20px; fill: #fff; }
 .aviso {
@@ -449,6 +508,22 @@ footer {
   font-size: 14px;
   color: var(--color-text-muted);
 }
+
+/* ====== Transición de entrada de página ====== */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* 'backwards' (no 'forwards'): al terminar libera el transform, así la nav
+   sticky y la barra fija no quedan atrapadas en un containing block */
+.page { animation: pageIn .4s cubic-bezier(.32,.72,.33,1) backwards; }
+
+/* Pop-in de la tarjeta de la landing */
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(14px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.landing-card { animation: popIn .45s cubic-bezier(.32,.72,.33,1) both; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

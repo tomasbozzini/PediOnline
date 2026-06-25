@@ -2,10 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTenant } from '../hooks/useTenant'
 import { useCart } from '../hooks/useCart'
-import CategoryNav from '../components/CategoryNav'
-import ProductCard from '../components/ProductCard'
-import MitadYMitadCard from '../components/MitadYMitadCard'
-import CartBar from '../components/CartBar'
+import { getTemplate } from '../templates'
 import OrderDrawer from '../components/OrderDrawer'
 
 export default function Pedir() {
@@ -20,7 +17,7 @@ export default function Pedir() {
     if (cart.totalCant === 0) setDrawerAbierto(false)
   }, [cart.totalCant])
 
-  // Sincronizar tab activa con scroll
+  // Sincronizar tab activa con scroll (los templates usan id="sec-<slug>")
   useEffect(() => {
     if (categorias.length === 0) return
 
@@ -53,60 +50,17 @@ export default function Pedir() {
   if (loading) return <p style={{ textAlign: 'center', padding: '4rem' }}>Cargando...</p>
   if (error || !tenant) return <p style={{ textAlign: 'center', padding: '4rem' }}>Comercio no encontrado.</p>
 
+  // Elegir el diseño según el dato del tenant
+  const Template = getTemplate(tenant.template)
+
   return (
     <>
-      <div className="mantel" aria-hidden="true" />
-
-      <header>
-        <div className="logo">{tenant.nombre}</div>
-        {tenant.tagline && <p className="tagline">{tenant.tagline}</p>}
-        {tenant.badges && tenant.badges.length > 0 && (
-          <div className="datos">
-            {tenant.badges.map((b, i) => <span key={i}>{b}</span>)}
-          </div>
-        )}
-      </header>
-
-      <div className="mantel" aria-hidden="true" />
-
-      <CategoryNav
+      <Template
+        tenant={tenant}
         categorias={categorias}
-        activeIndex={activeTab}
+        cart={cart}
+        activeTab={activeTab}
         onTabClick={handleTabClick}
-      />
-
-      <main>
-        {categorias.map(cat => (
-          <section key={cat.slug} id={'sec-' + cat.slug}>
-            <div className="sec-head">
-              <h2>{cat.nombre}</h2>
-              {cat.sub && <span className="sec-sub">{cat.sub}</span>}
-            </div>
-            <div className="grilla">
-              {cat.mitad_y_mitad && (
-                <MitadYMitadCard
-                  productos={cat.productos}
-                  onAgregar={cart.agregarMM}
-                />
-              )}
-              {cat.productos.map(p => (
-                <ProductCard
-                  key={p.slug}
-                  producto={p}
-                  cantidad={cart.carrito[p.slug] || 0}
-                  onCambiar={cart.cambiarCant}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
-      </main>
-
-      <footer>Pedidos únicamente por WhatsApp</footer>
-
-      <CartBar
-        totalCant={cart.totalCant}
-        totalPrecio={cart.totalPrecio}
         onVerPedido={abrirDrawer}
       />
 

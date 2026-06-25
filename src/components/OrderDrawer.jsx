@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { fmt } from '../hooks/useCart'
+import Cant from './Cant'
 
 const WSP_ICON = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -85,7 +86,7 @@ export default function OrderDrawer({
                   </div>
                   <div className="stepper">
                     <button className="menos" aria-label="Quitar" onClick={() => cambiarCant(id, -1)}>−</button>
-                    <span className="cant">{c}</span>
+                    <Cant value={c} />
                     <button className="mas" aria-label="Agregar" onClick={() => cambiarCant(id, 1)}>+</button>
                   </div>
                 </div>

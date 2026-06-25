@@ -14,7 +14,7 @@ insert into tenants (id, slug, nombre, tagline, whatsapp, badges, colores) value
     "bg":          "#FAF2E6",
     "primary":     "#C0432C",
     "primaryDark": "#8F2C1C",
-    "secondary":   "#3F6B43",
+    "secondary":   "#7E2B2B",
     "accent":      "#E0A02E",
     "accentDark":  "#B97F1E",
     "text":        "#3B2A20",
@@ -131,3 +131,22 @@ insert into productos (categoria_id, slug, nombre, descripcion, precio, emoji, i
   ('b0000000-0000-0000-0000-000000000008', 'agua',    'Agua mineral 1.5L',  'Con o sin gas.',                                      3000, '💧', null, 1),
   ('b0000000-0000-0000-0000-000000000008', 'birra',   'Cerveza 1L',         'Rubia bien helada, retornable no.',                    5500, '🍺', null, 2),
   ('b0000000-0000-0000-0000-000000000008', 'moscato', 'Moscato 750ml',      'Porque pizza sin moscato es solo queso con pan.',      6500, '🍷', null, 3);
+
+
+-- ============================================================
+-- Diseño por tenant: template + tokens de estilo
+-- (idempotente: agrega columnas si faltan y asigna el diseño)
+-- ============================================================
+alter table tenants add column if not exists template text default 'clasico';
+alter table tenants add column if not exists estilos  jsonb default '{}'::jsonb;
+
+-- Pizzería: diseño clásico (grilla de cards con foto)
+update tenants
+set template = 'clasico'
+where slug = 'pizzeria-demo';
+
+-- La Sirena: diseño moderno (menú en lista) con tipografía elegante
+update tenants
+set template = 'moderno',
+    estilos = '{"fontDisplay": "''Playfair Display'', serif", "fontBody": "''Inter'', sans-serif"}'::jsonb
+where slug = 'la-sirena';

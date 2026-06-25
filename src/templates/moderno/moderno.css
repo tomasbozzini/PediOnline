@@ -1,0 +1,292 @@
+/* ============================================================
+   Template "moderno" — diseño en lista, elegante.
+   Usa las mismas variables de color/estilo del tenant, pero
+   una estructura visual totalmente distinta al "clasico".
+   ============================================================ */
+
+.mod {
+  max-width: 720px;
+  margin: 0 auto;
+  min-height: 100dvh;
+}
+
+/* ---- Hero header ---- */
+.mod-hero {
+  position: relative;
+  padding: 56px 24px 40px;
+  text-align: center;
+  color: var(--color-surface);
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+.mod-logo {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .35);
+  backdrop-filter: blur(2px);
+}
+.mod-titulo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.3rem, 9vw, 3.1rem);
+  line-height: 1.05;
+  letter-spacing: -.5px;
+}
+.mod-tagline {
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: .9;
+  font-weight: 500;
+}
+.mod-badges {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+.mod-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .16);
+  border: 1px solid rgba(255, 255, 255, .25);
+}
+
+/* ---- Nav de categorías: subrayado ---- */
+.mod-nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  gap: 4px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+.mod-nav::-webkit-scrollbar { display: none; }
+.mod-tab {
+  position: relative;
+  padding: 16px 14px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  background: none;
+  transition: color .15s;
+}
+.mod-tab::after {
+  content: '';
+  position: absolute;
+  left: 14px; right: 14px; bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--color-primary);
+  transform: scaleX(0);
+  transition: transform .2s;
+}
+.mod-tab:hover { color: var(--color-text); }
+.mod-tab.activa { color: var(--color-primary); }
+.mod-tab.activa::after { transform: scaleX(1); }
+
+/* ---- Secciones y filas ---- */
+.mod-main { padding: 8px 16px 40px; }
+.mod-sec { padding-top: 40px; }
+.mod-sec-head { margin-bottom: 8px; }
+.mod-sec-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--color-text);
+}
+.mod-sec-sub {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.mod-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--color-border);
+  animation: cardIn .45s cubic-bezier(.32,.72,.33,1) backwards;
+}
+.mod-row-info { flex: 1; min-width: 0; }
+.mod-row-nombre {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--color-text);
+}
+.mod-row-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  margin-top: 3px;
+}
+.mod-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.mod-precio {
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+/* Stepper del template moderno */
+.mod-stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mod-stepper button {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  transition: transform .1s, filter .15s;
+}
+.mod-stepper button:hover { filter: brightness(1.07); }
+.mod-stepper button:active { transform: scale(.9); }
+.mod-stepper .menos {
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text);
+}
+.mod-stepper .mas {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+.mod-stepper .cant {
+  min-width: 16px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--color-text);
+  display: inline-block;
+}
+.mod-stepper .cant.bump { animation: bump .32s ease; }
+
+/* ---- Mitad y mitad (destacado) ---- */
+.mod-mm {
+  margin-top: 14px;
+  padding: 18px;
+  border-radius: var(--radio);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--sombra);
+}
+.mod-mm-titulo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--color-primary);
+}
+.mod-mm-sub { font-size: 13px; color: var(--color-text-muted); margin: 4px 0 14px; }
+.mod-mm-selects { display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 460px) { .mod-mm-selects { flex-direction: row; } }
+.mod-mm-selects > div { flex: 1; }
+.mod-mm-selects label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 5px;
+  color: var(--color-text);
+}
+.mod-mm-selects select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+}
+.mod-mm-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+.mod-mm-precio { font-size: 14px; color: var(--color-text-muted); }
+.mod-mm-precio b { font-size: 17px; color: var(--color-primary); }
+.mod-mm-btn {
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 14px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  transition: transform .1s, filter .15s;
+}
+.mod-mm-btn:hover { filter: brightness(1.07); }
+.mod-mm-btn:active { transform: scale(.95); }
+.mod-mm-btn.agregada { filter: brightness(1.1); animation: popBtn .3s ease; }
+
+/* ---- Cart pill flotante ---- */
+.mod-cartpill {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 140%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px 14px 24px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  box-shadow: 0 14px 34px -10px rgba(0,0,0,.45);
+  transition: transform .35s cubic-bezier(.32,.72,.33,1);
+  opacity: 0;
+  pointer-events: none;
+}
+.mod-cartpill.visible {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.mod-cartpill-resumen { font-weight: 700; font-size: 14px; }
+.mod-cartpill-btn {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-weight: 800;
+  font-size: 14px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: filter .15s;
+}
+.mod-cartpill-btn:hover { filter: brightness(.95); }
+
+.mod-footer {
+  text-align: center;
+  padding: 24px 16px calc(40px + env(safe-area-inset-bottom));
+  font-size: 13px;
+  color: var(--color-text-muted);
+}

@@ -32,8 +32,8 @@ export function useTenant(slug) {
         return
       }
 
-      // 2. Aplicar theming
-      if (t.colores) applyTheme(t.colores)
+      // 2. Aplicar theming (colores + tokens de estilo)
+      applyTheme(t.colores, t.estilos)
 
       // 3. Cargar categorías con productos
       const { data: cats, error: cErr } = await supabase

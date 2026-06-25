@@ -40,7 +40,7 @@ export default function MitadYMitadCard({ productos, onAgregar }) {
       </div>
       <div className="mm-pie">
         <span className="mm-precio">Precio: <b className="mm-monto">{fmt(precio)}</b></span>
-        <button className="mm-agregar" type="button" onClick={handleAgregar}>
+        <button className={`mm-agregar${feedback ? ' agregada' : ''}`} type="button" onClick={handleAgregar}>
           {feedback ? "✓ Agregada" : "Agregar"}
         </button>
       </div>

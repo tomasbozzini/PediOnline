@@ -9,7 +9,7 @@ export default function Carta() {
   if (error || !tenant) return <p style={{ textAlign: 'center', padding: '4rem' }}>Comercio no encontrado.</p>
 
   return (
-    <div style={{ padding: '2rem', textAlign: 'center' }}>
+    <div className="page" style={{ padding: '2rem', textAlign: 'center' }}>
       <h1 style={{ fontFamily: "'Zilla Slab', serif", color: 'var(--color-primary)' }}>{tenant.nombre}</h1>
       <p style={{ color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>Carta — próximamente</p>
     </div>
