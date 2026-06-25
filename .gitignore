@@ -1,3 +1,13 @@
 # Editor / herramientas locales
 .claude/
 .vscode/
+
+# Dependencias
+node_modules/
+
+# Build
+dist/
+
+# Variables de entorno
+.env
+.env.local
