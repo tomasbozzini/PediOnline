@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { applyTheme } from '../lib/theme'
 
@@ -7,6 +7,7 @@ export function useTenant(slug) {
   const [categorias, setCategorias] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const idsRef = useRef(new Set())
 
   useEffect(() => {
     if (!slug) return
@@ -66,6 +67,37 @@ export function useTenant(slug) {
     load()
     return () => { cancelled = true }
   }, [slug])
+
+  // Mantener el set de IDs de productos cargados (para filtrar los eventos Realtime)
+  useEffect(() => {
+    const s = new Set()
+    categorias.forEach(c => (c.productos || []).forEach(p => s.add(p.id)))
+    idsRef.current = s
+  }, [categorias])
+
+  // Realtime: cuando cambia un producto del tenant (p. ej. su stock), refrescarlo
+  // en el estado local para que la carta del cliente se actualice en vivo.
+  useEffect(() => {
+    if (!tenant) return
+
+    const channel = supabase
+      .channel('productos-' + tenant.id)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'productos' },
+        (payload) => {
+          const nuevo = payload.new
+          if (!nuevo || !idsRef.current.has(nuevo.id)) return
+          setCategorias(prev => prev.map(cat => ({
+            ...cat,
+            productos: cat.productos.map(p => p.id === nuevo.id ? { ...p, ...nuevo } : p),
+          })))
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [tenant])
 
   return { tenant, categorias, loading, error }
 }

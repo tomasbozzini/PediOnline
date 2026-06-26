@@ -20,22 +20,34 @@ export default function OrderDrawer({
   setEntrega,
   whatsapp,
   generarMensaje,
+  tenant,
+  guardarYEnviar,
 }) {
   const [nombre, setNombre] = useState('')
+  const [telefono, setTelefono] = useState('')
   const [direccion, setDireccion] = useState('')
   const [pago, setPago] = useState('Efectivo')
   const [notas, setNotas] = useState('')
   const [errorNombre, setErrorNombre] = useState(false)
+  const [errorTelefono, setErrorTelefono] = useState(false)
   const [errorDireccion, setErrorDireccion] = useState(false)
+  const [enviando, setEnviando] = useState(false)
+  const [errorEnvio, setErrorEnvio] = useState('')
   const nombreRef = useRef(null)
+  const telefonoRef = useRef(null)
   const direccionRef = useRef(null)
 
-  const handleEnviar = () => {
-    if (totalCant === 0) return
+  const handleEnviar = async () => {
+    if (totalCant === 0 || enviando) return
 
     if (!nombre.trim()) {
       setErrorNombre(true)
       nombreRef.current?.focus()
+      return
+    }
+    if (!telefono.trim()) {
+      setErrorTelefono(true)
+      telefonoRef.current?.focus()
       return
     }
     if (entrega === 'Delivery' && !direccion.trim()) {
@@ -44,8 +56,31 @@ export default function OrderDrawer({
       return
     }
 
-    const mensaje = generarMensaje({
+    setErrorEnvio('')
+    setEnviando(true)
+
+    // 1. Persistir el pedido en Supabase y obtener el número de orden
+    const { numero_orden, error } = await guardarYEnviar({
       nombre: nombre.trim(),
+      telefono: telefono.trim(),
+      direccion: direccion.trim(),
+      pago,
+      notas: notas.trim(),
+      tenant,
+    })
+
+    setEnviando(false)
+
+    if (error || !numero_orden) {
+      setErrorEnvio('No se pudo registrar el pedido. Probá de nuevo.')
+      return
+    }
+
+    // 2. Armar el mensaje con el número de orden y abrir WhatsApp
+    const num = String(numero_orden).padStart(3, '0')
+    const mensaje = `Pedido #${num}\n` + generarMensaje({
+      nombre: nombre.trim(),
+      telefono: telefono.trim(),
       direccion: direccion.trim(),
       pago,
       notas: notas.trim(),
@@ -111,6 +146,21 @@ export default function OrderDrawer({
             </div>
 
             <div className="campo">
+              <label htmlFor="inpTelefono">Teléfono / celular</label>
+              <input
+                id="inpTelefono"
+                ref={telefonoRef}
+                type="tel"
+                inputMode="tel"
+                placeholder="Ej: 2494 12-3456"
+                autoComplete="tel"
+                value={telefono}
+                onChange={e => { setTelefono(e.target.value); setErrorTelefono(false) }}
+                style={errorTelefono ? { borderColor: 'var(--color-primary)' } : undefined}
+              />
+            </div>
+
+            <div className="campo">
               <label>Entrega</label>
               <div className="toggle">
                 <button
@@ -171,10 +221,15 @@ export default function OrderDrawer({
           </div>
 
           {/* Botón WhatsApp */}
-          <button className="btn-wsp" type="button" onClick={handleEnviar}>
+          <button className="btn-wsp" type="button" onClick={handleEnviar} disabled={enviando}>
             {WSP_ICON}
-            Enviar pedido por WhatsApp
+            {enviando ? 'Enviando…' : 'Enviar pedido por WhatsApp'}
           </button>
+          {errorEnvio && (
+            <p style={{ color: 'var(--color-primary)', textAlign: 'center', marginTop: '.5rem', fontSize: '.88rem', fontWeight: 600 }}>
+              {errorEnvio}
+            </p>
+          )}
           <p className="aviso">Se abre WhatsApp con tu pedido cargado, solo tenés que tocar enviar.</p>
         </div>
       </div>

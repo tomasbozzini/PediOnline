@@ -76,6 +76,8 @@ export default function Pedir() {
         setEntrega={cart.setEntrega}
         whatsapp={tenant.whatsapp}
         generarMensaje={cart.generarMensaje}
+        tenant={tenant}
+        guardarYEnviar={cart.guardarYEnviar}
       />
     </>
   )
