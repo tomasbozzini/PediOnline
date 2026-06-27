@@ -84,27 +84,27 @@ export function useAdmin(tenantId) {
 
   const limpiarNuevo = useCallback(() => setNuevoPedidoId(null), [])
 
-  // Confirmar: descuenta stock de cada ítem de catálogo (no de los combos) y
-  // pasa el pedido a 'confirmado'. Refresca productos para reflejar el stock.
-  const confirmarPedido = useCallback(async (pedidoId, items) => {
-    for (const it of (items || [])) {
-      if (!it.es_custom && it.producto_id) {
-        await supabase.rpc('descontar_stock', {
-          p_producto_id: it.producto_id,
-          p_cantidad: it.cantidad,
-        })
-      }
+  // Confirmar: RPC atómica que verifica stock de TODOS los ítems de catálogo y,
+  // solo si alcanza para todos, descuenta y pasa el pedido a 'confirmado'.
+  // Devuelve:
+  //   { ok: true }                              -> confirmado (refresca stock)
+  //   { ok: false, motivo: 'sin_stock', faltantes: [...] }
+  //   { ok: false, motivo: 'estado_invalido' | 'no_existe' }
+  //   { ok: false, error }                      -> error de red/SQL
+  const confirmarPedido = useCallback(async (pedidoId) => {
+    const { data, error: err } = await supabase
+      .rpc('confirmar_pedido', { p_pedido_id: pedidoId })
+
+    if (err) return { ok: false, error: err.message }
+
+    if (data && data.ok === false) {
+      return { ok: false, motivo: data.error, faltantes: data.faltantes || [] }
     }
 
-    const { error: err } = await supabase
-      .from('pedidos').update({ estado: 'confirmado' }).eq('id', pedidoId)
-
-    if (!err) {
-      setPedidos(prev => prev.map(p => p.id === pedidoId ? { ...p, estado: 'confirmado' } : p))
-      const prods = await fetchProductos()
-      if (prods) setProductos(prods)
-    }
-    return { error: err }
+    setPedidos(prev => prev.map(p => p.id === pedidoId ? { ...p, estado: 'confirmado' } : p))
+    const prods = await fetchProductos()
+    if (prods) setProductos(prods)
+    return { ok: true }
   }, [fetchProductos])
 
   const cancelarPedido = useCallback(async (pedidoId) => {

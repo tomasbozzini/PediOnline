@@ -200,6 +200,7 @@ END;
 $$;
 
 -- Función descontar_stock: atómica, falla silenciosamente si no hay stock suficiente
+-- (legado: hoy la confirmación usa confirmar_pedido, que es todo-o-nada)
 CREATE OR REPLACE FUNCTION descontar_stock(p_producto_id uuid, p_cantidad integer)
 RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER AS $$
@@ -210,5 +211,77 @@ BEGIN
     AND stock IS NOT NULL
     AND stock >= p_cantidad;
   RETURN FOUND;
+END;
+$$;
+
+-- Función confirmar_pedido: confirma un pedido de forma ATÓMICA (todo-o-nada).
+-- Bloquea el pedido y los productos involucrados, verifica que haya stock para
+-- TODOS los ítems de catálogo, y recién ahí descuenta y pasa a 'confirmado'.
+-- Si a algún producto (con stock != null) no le alcanza, NO modifica nada y
+-- devuelve la lista de faltantes para que el panel avise cuál se quedó sin stock.
+--   ok=true                       -> confirmado y stock descontado
+--   ok=false, error='sin_stock'   -> faltantes:[{producto_id,nombre,disponible,requerido}]
+--   ok=false, error='estado_invalido' -> el pedido ya no estaba pendiente
+CREATE OR REPLACE FUNCTION confirmar_pedido(p_pedido_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_estado    text;
+  v_faltantes jsonb;
+BEGIN
+  -- Bloquear el pedido y validar que siga pendiente (evita doble confirmación)
+  SELECT estado INTO v_estado FROM pedidos WHERE id = p_pedido_id FOR UPDATE;
+  IF v_estado IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'no_existe');
+  END IF;
+  IF v_estado <> 'pendiente' THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'estado_invalido', 'estado', v_estado);
+  END IF;
+
+  -- Bloquear las filas de productos involucradas (serializa confirmaciones
+  -- concurrentes que compitan por el mismo stock). ORDER BY id baja deadlocks.
+  PERFORM 1
+  FROM productos
+  WHERE id IN (
+    SELECT DISTINCT producto_id FROM pedidos_items
+    WHERE pedido_id = p_pedido_id AND es_custom = false AND producto_id IS NOT NULL
+  )
+  ORDER BY id
+  FOR UPDATE;
+
+  -- Detectar faltantes: producto con stock acotado y menor a lo requerido
+  SELECT jsonb_agg(jsonb_build_object(
+           'producto_id', p.id,
+           'nombre',      p.nombre,
+           'disponible',  p.stock,
+           'requerido',   n.req))
+  INTO v_faltantes
+  FROM (
+    SELECT producto_id, SUM(cantidad)::int AS req
+    FROM pedidos_items
+    WHERE pedido_id = p_pedido_id AND es_custom = false AND producto_id IS NOT NULL
+    GROUP BY producto_id
+  ) n
+  JOIN productos p ON p.id = n.producto_id
+  WHERE p.stock IS NOT NULL AND p.stock < n.req;
+
+  IF v_faltantes IS NOT NULL THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'sin_stock', 'faltantes', v_faltantes);
+  END IF;
+
+  -- Hay stock para todo: descontar (solo donde el stock está acotado)
+  UPDATE productos p
+  SET stock = p.stock - n.req
+  FROM (
+    SELECT producto_id, SUM(cantidad)::int AS req
+    FROM pedidos_items
+    WHERE pedido_id = p_pedido_id AND es_custom = false AND producto_id IS NOT NULL
+    GROUP BY producto_id
+  ) n
+  WHERE p.id = n.producto_id AND p.stock IS NOT NULL;
+
+  UPDATE pedidos SET estado = 'confirmado' WHERE id = p_pedido_id;
+
+  RETURN jsonb_build_object('ok', true);
 END;
 $$;

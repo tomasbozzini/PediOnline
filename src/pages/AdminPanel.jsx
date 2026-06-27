@@ -43,6 +43,31 @@ function hace(iso) {
 
 const padOrden = n => '#' + String(n).padStart(3, '0')
 
+// Normaliza el teléfono del cliente a formato wa.me (internacional, sin "+").
+// Mejor esfuerzo asumiendo Argentina (549…) cuando no trae código de país; el
+// local puede corregir el número en WhatsApp antes de enviar si hiciera falta.
+function telCliente(raw) {
+  let d = (raw || '').replace(/\D/g, '')
+  if (!d) return null
+  if (d.startsWith('54')) return d          // ya viene con código de país
+  d = d.replace(/^0/, '')                    // saca el 0 de larga distancia
+  return '549' + d                           // celular argentino
+}
+
+// Mensaje formal al cliente avisando que un producto de su pedido se quedó sin
+// stock y pidiéndole que lo cambie. Mismo enfoque que el carrito: texto prearmado.
+function mensajeSinStock(pedido, faltantes, tenant) {
+  const num = String(pedido.numero_orden).padStart(3, '0')
+  const lista = (faltantes || []).map(f => `• ${f.nombre}`).join('\n')
+  let m = `¡Hola ${pedido.nombre_cliente}! 👋\n\n`
+  m += `Te escribimos de ${tenant?.nombre || 'el local'} por tu pedido #${num}.\n\n`
+  m += `Lamentablemente nos quedamos sin stock de:\n${lista}\n\n`
+  m += `¿Querés cambiarlo por otra opción o preferís que lo quitemos del pedido? `
+  m += `Avisanos y lo resolvemos enseguida.\n\n`
+  m += `¡Perdón por el inconveniente y gracias!`
+  return m
+}
+
 const PANEL_CSS = `
 @keyframes admPulse {
   0%, 100% { box-shadow: 0 0 0 0 transparent; }
@@ -211,7 +236,7 @@ export default function AdminPanel() {
         {admin.loading ? (
           <p>Cargando…</p>
         ) : vista === 'pedidos' ? (
-          <PedidosView admin={admin} />
+          <PedidosView admin={admin} tenant={tenant} />
         ) : (
           <StockView admin={admin} />
         )}
@@ -222,12 +247,38 @@ export default function AdminPanel() {
 
 // --- vista Pedidos ---------------------------------------------------------
 
-function PedidosView({ admin }) {
+function PedidosView({ admin, tenant }) {
   const [filtro, setFiltro] = useState('pendiente')
+  const [sinStock, setSinStock] = useState(null) // { pedido, faltantes }
 
   const counts = { pendiente: 0, confirmado: 0, entregado: 0, cancelado: 0 }
   admin.pedidos.forEach(p => { if (p.estado in counts) counts[p.estado]++ })
   const visibles = admin.pedidos.filter(p => p.estado === filtro)
+
+  const confirmar = async (p) => {
+    const r = await admin.confirmarPedido(p.id)
+    if (r.ok) return
+    if (r.motivo === 'sin_stock') {
+      setSinStock({ pedido: p, faltantes: r.faltantes })
+    } else {
+      // estado_invalido (ya confirmado/cancelado en otra pestaña) o error de red
+      alert('No se pudo confirmar el pedido. Actualizá la página e intentá de nuevo.')
+    }
+  }
+
+  // Cancela el pedido sin stock y abre WhatsApp con el aviso formal al cliente.
+  // Además copia el mensaje al portapapeles: si el cliente tipeó mal su número,
+  // el local puede pegarlo (Ctrl+V) en el chat correcto sin perder el texto.
+  const cancelarYAvisar = async () => {
+    const { pedido, faltantes } = sinStock
+    await admin.cancelarPedido(pedido.id)
+    const tel = telCliente(pedido.telefono)
+    const msg = mensajeSinStock(pedido, faltantes, tenant)
+    try { await navigator.clipboard.writeText(msg) } catch { /* navegador sin permiso de portapapeles: ignorar */ }
+    const url = `https://wa.me/${tel || ''}?text=${encodeURIComponent(msg)}`
+    window.open(url, '_blank')
+    setSinStock(null)
+  }
 
   return (
     <>
@@ -288,7 +339,7 @@ function PedidosView({ admin }) {
 
               {p.estado === 'pendiente' && (
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '.5rem' }}>
-                  <button style={S.btn('#16a34a', '#fff')} onClick={() => admin.confirmarPedido(p.id, items)}>
+                  <button style={S.btn('#16a34a', '#fff')} onClick={() => confirmar(p)}>
                     <Check size={16} /> Confirmar
                   </button>
                   <button style={S.btn('#dc2626', '#fff', true)} onClick={() => admin.cancelarPedido(p.id)}>
@@ -311,7 +362,67 @@ function PedidosView({ admin }) {
           </div>
         )
       })}
+
+      {sinStock && (
+        <SinStockModal
+          data={sinStock}
+          onCerrar={() => setSinStock(null)}
+          onCancelarYAvisar={cancelarYAvisar}
+        />
+      )}
     </>
+  )
+}
+
+// --- modal: pedido sin stock ------------------------------------------------
+
+function SinStockModal({ data, onCerrar, onCancelarYAvisar }) {
+  const { pedido, faltantes } = data
+  return (
+    <div
+      onClick={onCerrar}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,18,25,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', zIndex: 50 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 16, padding: '1.5rem 1.6rem', width: 'min(440px, 100%)', boxShadow: '0 20px 60px rgba(0,0,0,.25)' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.75rem' }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fee2e2', color: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <X size={22} />
+          </div>
+          <h2 style={{ fontSize: '1.15rem', margin: 0 }}>Sin stock para confirmar</h2>
+        </div>
+
+        <p style={{ color: '#4b5563', fontSize: '.92rem', margin: '0 0 .75rem' }}>
+          El pedido <strong>{padOrden(pedido.numero_orden)}</strong> no se puede confirmar porque no hay stock suficiente de:
+        </p>
+
+        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1rem' }}>
+          {faltantes.map(f => (
+            <li key={f.producto_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '.5rem .75rem', background: '#fef2f2', borderRadius: 8, marginBottom: '.4rem', fontSize: '.9rem' }}>
+              <span style={{ fontWeight: 600 }}>{f.nombre}</span>
+              <span style={{ color: '#b91c1c' }}>
+                pedidos {f.requerido} · hay {f.disponible}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <p style={{ color: '#6b7280', fontSize: '.84rem', margin: '0 0 1.25rem' }}>
+          No se descontó stock ni se confirmó nada. Podés reponer stock y reintentar, o cancelar el pedido avisando al cliente por WhatsApp.
+        </p>
+
+        <div style={{ display: 'flex', gap: '.6rem', justifyContent: 'flex-end' }}>
+          <button style={S.btn('#6b7280', '#fff', true)} onClick={onCerrar}>
+            Cerrar
+          </button>
+          <button style={S.btn('#16a34a', '#fff')} onClick={onCancelarYAvisar}>
+            <Phone size={16} /> Cancelar y avisar al cliente
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
