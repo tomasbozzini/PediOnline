@@ -1,14 +1,39 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const fmt = n => "$" + n.toLocaleString("es-AR")
 
 export { fmt }
 
-export function useCart(categorias) {
-  const [carrito, setCarrito] = useState({})       // id -> cantidad
-  const [itemsCustom, setItemsCustom] = useState({}) // id armado -> {nombre, precio, emoji}
+// Lee el carrito persistido en localStorage (si hay una clave). Best-effort:
+// cualquier error (JSON inválido, storage bloqueado) devuelve el objeto vacío.
+function leerPersistido(persistKey) {
+  if (!persistKey) return { carrito: {}, itemsCustom: {} }
+  try {
+    const raw = localStorage.getItem(persistKey)
+    if (!raw) return { carrito: {}, itemsCustom: {} }
+    const data = JSON.parse(raw)
+    return { carrito: data.carrito || {}, itemsCustom: data.itemsCustom || {} }
+  } catch {
+    return { carrito: {}, itemsCustom: {} }
+  }
+}
+
+// persistKey opcional: si se pasa, el carrito (carrito + itemsCustom) se guarda en
+// localStorage bajo esa clave y se rehidrata al montar. Sin clave, comportamiento
+// idéntico al anterior (sin persistencia) para los templates que no la usan.
+export function useCart(categorias, persistKey) {
+  const [carrito, setCarrito] = useState(() => leerPersistido(persistKey).carrito)       // id -> cantidad
+  const [itemsCustom, setItemsCustom] = useState(() => leerPersistido(persistKey).itemsCustom) // id armado -> {nombre, precio, emoji}
   const [entrega, setEntrega] = useState("Delivery")
+
+  // Persistir en localStorage cada vez que cambia el carrito
+  useEffect(() => {
+    if (!persistKey) return
+    try {
+      localStorage.setItem(persistKey, JSON.stringify({ carrito, itemsCustom }))
+    } catch { /* storage lleno o bloqueado: ignorar */ }
+  }, [persistKey, carrito, itemsCustom])
 
   // Índice plano de todos los productos (con stock) y su orden global
   const { productoPorSlug, ordenProducto } = useMemo(() => {
@@ -155,6 +180,12 @@ export function useCart(categorias) {
     return { numero_orden: data?.numero_orden ?? null, error: null }
   }, [carritoOrdenado, productoPorSlug, itemsCustom, generarMensaje, entrega, totalPrecio])
 
+  // Vaciar el carrito (p. ej. tras confirmar el envío del pedido)
+  const vaciar = useCallback(() => {
+    setCarrito({})
+    setItemsCustom({})
+  }, [])
+
   return {
     carrito,
     itemsCustom,
@@ -168,6 +199,7 @@ export function useCart(categorias) {
     carritoOrdenado,
     generarMensaje,
     guardarYEnviar,
+    vaciar,
     fmt,
   }
 }

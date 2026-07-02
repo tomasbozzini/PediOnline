@@ -150,3 +150,78 @@ update tenants
 set template = 'moderno',
     estilos = '{"fontDisplay": "''Playfair Display'', serif", "fontBody": "''Inter'', sans-serif"}'::jsonb
 where slug = 'la-sirena';
+
+
+-- ============================================================
+-- Seed: tenant "pizzeria-2" — demo storefront "trattoria"
+-- Diseño de una página (hero narrativo + franjas + checkout WhatsApp).
+-- La paleta del template trattoria es fija; colores acá se usan sobre
+-- todo para el panel admin (que toma --color-primary del tenant).
+-- ============================================================
+
+-- Asegura las columnas necesarias (idempotente, por si se corre suelto sobre
+-- una base vieja a la que nunca se le aplicaron las partes incrementales)
+alter table tenants   add column if not exists template  text  default 'clasico';
+alter table tenants   add column if not exists estilos   jsonb default '{}'::jsonb;
+alter table tenants   add column if not exists pin_admin text  default '1234';
+alter table productos add column if not exists stock     integer default null;
+
+-- 1. Tenant
+insert into tenants (id, slug, nombre, tagline, whatsapp, logo_emoji, badges, template, pin_admin, colores) values (
+  'a0000000-0000-0000-0000-000000000003',
+  'pizzeria-2',
+  'Pizzería 2',
+  'Masa artesanal, salsa natural y el horno prendido todas las noches.',
+  '5492494551234',
+  '🍕',
+  '["🕗 19:30–23:30 hs", "📍 Av. del Valle 1200", "🛵 Envío gratis en el centro"]',
+  'trattoria',
+  '2222',
+  '{
+    "bg":          "#FBF4E4",
+    "primary":     "#B23A26",
+    "primaryDark": "#8A2C1C",
+    "secondary":   "#566B34",
+    "accent":      "#C89331",
+    "accentDark":  "#9A6F1F",
+    "text":        "#2A211A",
+    "textMuted":   "#7A6F5C",
+    "border":      "#EADCC0",
+    "surface":     "#FFFFFF"
+  }'
+);
+
+-- 2. Categorías
+insert into categorias (id, tenant_id, slug, nombre, emoji, sub, mitad_y_mitad, orden) values
+  ('b0000000-0000-0000-0000-000000000009', 'a0000000-0000-0000-0000-000000000003', 'pizzas',    'Las clásicas', '🍕', 'Al molde, 8 porciones, del horno de barro',  true,  0),
+  ('b0000000-0000-0000-0000-000000000010', 'a0000000-0000-0000-0000-000000000003', 'empanadas', 'Empanadas',    '🥟', 'Horneadas, masa casera · por unidad',        false, 1),
+  ('b0000000-0000-0000-0000-000000000011', 'a0000000-0000-0000-0000-000000000003', 'faina',     'Fainá',        '🫓', 'De garbanzo, finita y dorada',               false, 2),
+  ('b0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000003', 'bebidas',   'Bebidas',      '🥤', 'Bien frías',                                 false, 3);
+
+-- 3. Productos (con stock para lucir el panel: algunos acotados, otros sin límite)
+
+-- Pizzas
+insert into productos (categoria_id, slug, nombre, descripcion, precio, emoji, img_url, stock, orden) values
+  ('b0000000-0000-0000-0000-000000000009', 'muzza', 'Muzzarella',          'Salsa de tomate, muzzarella, aceitunas verdes y orégano.', 14000, '🍕', null, 20,   0),
+  ('b0000000-0000-0000-0000-000000000009', 'napo',  'Napolitana',          'Muzzarella, rodajas de tomate fresco, ajo y perejil.',     16500, '🍕', null, 15,   1),
+  ('b0000000-0000-0000-0000-000000000009', 'fuga',  'Fugazzeta',           'Doble muzzarella y montaña de cebolla. La de siempre.',    17000, '🍕', null, null, 2),
+  ('b0000000-0000-0000-0000-000000000009', 'cala',  'Calabresa',           'Muzzarella y longaniza calabresa en rodajas.',             17500, '🍕', null, 8,    3),
+  ('b0000000-0000-0000-0000-000000000009', '4q',    'Cuatro Quesos',       'Muzzarella, roquefort, provolone y parmesano.',            19000, '🍕', null, 6,    4),
+  ('b0000000-0000-0000-0000-000000000009', 'trufa', 'Trufa & hongos',      'Crema de trufa, portobellos y muzzarella. De autor.',      22000, '🍕', null, 4,    5);
+
+-- Empanadas
+insert into productos (categoria_id, slug, nombre, descripcion, precio, emoji, img_url, stock, orden) values
+  ('b0000000-0000-0000-0000-000000000010', 'emp-carne', 'Carne a cuchillo', 'Con huevo, aceituna y el toque de comino de la nona.', 1600, '🥟', null, null, 0),
+  ('b0000000-0000-0000-0000-000000000010', 'emp-jyq',   'Jamón y queso',    'Bien rellenas, queso que se estira.',                 1600, '🥟', null, null, 1),
+  ('b0000000-0000-0000-0000-000000000010', 'emp-pollo', 'Pollo',            'Pollo desmenuzado con verdeo y morrón.',              1600, '🥟', null, null, 2);
+
+-- Fainá
+insert into productos (categoria_id, slug, nombre, descripcion, precio, emoji, img_url, stock, orden) values
+  ('b0000000-0000-0000-0000-000000000011', 'faina-por', 'Porción de fainá', 'El clásico caballo para tu porción de muzza.', 2500, '🫓', null, 30, 0),
+  ('b0000000-0000-0000-0000-000000000011', 'faina-ent', 'Fainá entera',     '8 porciones recién salidas del horno.',        8000, '🫓', null, 10, 1);
+
+-- Bebidas
+insert into productos (categoria_id, slug, nombre, descripcion, precio, emoji, img_url, stock, orden) values
+  ('b0000000-0000-0000-0000-000000000012', 'gaseosa', 'Gaseosa 1.5L',      'Coca-Cola, Sprite o Fanta. Aclaranos cuál en notas.', 4500, '🥤', null, null, 0),
+  ('b0000000-0000-0000-0000-000000000012', 'agua',    'Agua mineral 1.5L', 'Con o sin gas.',                                      3000, '💧', null, null, 1),
+  ('b0000000-0000-0000-0000-000000000012', 'birra',   'Cerveza 1L',        'Rubia bien helada.',                                  5500, '🍺', null, 24,   2);

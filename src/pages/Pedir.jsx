@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTenant } from '../hooks/useTenant'
 import { useCart } from '../hooks/useCart'
-import { getTemplate } from '../templates'
+import { getTemplate, esStorefront } from '../templates'
 import OrderDrawer from '../components/OrderDrawer'
 
 export default function Pedir() {
   const { slug } = useParams()
   const { tenant, categorias, loading, error } = useTenant(slug)
-  const cart = useCart(categorias)
+  const cart = useCart(categorias, `pediOnline:cart:${slug}`)
   const [drawerAbierto, setDrawerAbierto] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
 
@@ -64,21 +64,24 @@ export default function Pedir() {
         onVerPedido={abrirDrawer}
       />
 
-      <OrderDrawer
-        abierto={drawerAbierto}
-        onCerrar={() => setDrawerAbierto(false)}
-        carritoOrdenado={cart.carritoOrdenado}
-        getProducto={cart.getProducto}
-        cambiarCant={cart.cambiarCant}
-        totalPrecio={cart.totalPrecio}
-        totalCant={cart.totalCant}
-        entrega={cart.entrega}
-        setEntrega={cart.setEntrega}
-        whatsapp={tenant.whatsapp}
-        generarMensaje={cart.generarMensaje}
-        tenant={tenant}
-        guardarYEnviar={cart.guardarYEnviar}
-      />
+      {/* Los templates "storefront" (trattoria) manejan su propio checkout */}
+      {!esStorefront(tenant.template) && (
+        <OrderDrawer
+          abierto={drawerAbierto}
+          onCerrar={() => setDrawerAbierto(false)}
+          carritoOrdenado={cart.carritoOrdenado}
+          getProducto={cart.getProducto}
+          cambiarCant={cart.cambiarCant}
+          totalPrecio={cart.totalPrecio}
+          totalCant={cart.totalCant}
+          entrega={cart.entrega}
+          setEntrega={cart.setEntrega}
+          whatsapp={tenant.whatsapp}
+          generarMensaje={cart.generarMensaje}
+          tenant={tenant}
+          guardarYEnviar={cart.guardarYEnviar}
+        />
+      )}
     </>
   )
 }
